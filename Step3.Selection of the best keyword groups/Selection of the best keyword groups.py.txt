@@ -1,0 +1,54 @@
+import re
+
+def parse_data_block(block):
+    keyword_match = re.search(r'加入的关键字：(.+)', block)
+    modularity_match = re.search(r'模块度:\s*([\d.]+)', block)
+    community_count_match = re.search(r'社区数量:\s*(\d+)', block)
+    distribution_match = re.search(r'社区大小的分布:\s*\[([^\]]+)\]', block)
+
+    if keyword_match and modularity_match and community_count_match and distribution_match:
+        return {
+            "keyword": keyword_match.group(1).strip(),
+            "modularity": float(modularity_match.group(1)),
+            "community_count": int(community_count_match.group(1)),
+            "distribution": list(map(int, distribution_match.group(1).split(',')))
+        }
+    return None
+
+def find_max_community_group_and_save_keywords_until_then(file_path, output_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    blocks = content.strip().split('\n\n')  # 每组数据用空行分隔
+    parsed_data = [parse_data_block(block) for block in blocks if parse_data_block(block)]
+
+    if not parsed_data:
+        print("未找到有效数据。")
+        return
+
+    # 找到社区数量最多的那组及其索引
+    max_index, max_group = max(enumerate(parsed_data), key=lambda x: x[1]["community_count"])
+
+    print("社区数量最多的一组数据：")
+    print(f"加入关键字：{max_group['keyword']}")
+    print(f"模块度：{max_group['modularity']}")
+    print(f"社区数量：{max_group['community_count']}")
+    print(f"社区大小的分布：{max_group['distribution']}")
+
+    # 提取从第1组到该组所有的“加入关键字”，按顺序拼接词语
+    all_keywords = []
+    for i in range(0, max_index + 1):
+        words = parsed_data[i]['keyword'].split()
+        all_keywords.extend(words)
+
+    # 写入到txt
+    with open(output_path, 'w', encoding='utf-8') as f_out:
+        f_out.write(' '.join(all_keywords))
+
+    print(f"\n已将前 {max_index + 1} 组的关键字写入：{output_path}")
+
+# 使用示例
+find_max_community_group_and_save_keywords_until_then(
+    'mokuaidu.txt',            # 输入文件路径
+    'ordered_keywords.txt'      # 输出文件路径
+)

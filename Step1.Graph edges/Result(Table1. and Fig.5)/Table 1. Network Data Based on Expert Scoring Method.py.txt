@@ -1,0 +1,46 @@
+import networkx as nx
+import pandas as pd
+import community.community_louvain as community_louvain
+from collections import Counter
+import numpy as np
+
+# 读取你的连边数据
+edges = pd.read_excel('C:/Users/Administrator/Desktop/pythonProject3/Edge formation results from expert evaluation.xlsx')
+
+# 构建无向图
+G = nx.Graph()
+for idx, row in edges.iterrows():
+    G.add_edge(row['Source'], row['Target'])  # 注意是你的实际列名
+
+# 基本指标
+print("节点数:", G.number_of_nodes())
+print("边数:", G.number_of_edges())
+
+average_degree = sum(dict(G.degree()).values()) / G.number_of_nodes()
+print("平均节点度:", average_degree)
+
+avg_clustering = nx.average_clustering(G)
+print("平均聚类系数:", avg_clustering)
+
+# 社区划分 + 模块度
+partition = community_louvain.best_partition(G)
+modularity = community_louvain.modularity(partition, G)
+print("模块度:", modularity)
+
+num_communities = len(set(partition.values()))
+print("社区数量:", num_communities)
+# 打印每个社区中的节点
+communities = {}
+for node, comm_id in partition.items():
+    communities.setdefault(comm_id, []).append(node)
+
+print("社区划分结果：")
+for comm_id, nodes in communities.items():
+    print(f"社区 {comm_id}: {nodes}")
+# 计算社区均衡度（社区大小分布的方差）
+community_sizes = list(Counter(partition.values()).values())
+avg_size = np.mean(community_sizes)
+variance = np.var(community_sizes)
+print("社区大小分布:", community_sizes)
+print("社区平均大小:", avg_size)
+print("社区分布均衡度（方差）:", variance)
